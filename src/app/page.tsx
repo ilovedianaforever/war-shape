@@ -6,6 +6,7 @@ import { ProcessedEvent } from '@/types/conflict';
 import { conflictDataService } from '@/services/conflictData';
 import Sidebar from '@/components/Sidebar';
 import EventModal from '@/components/EventModal';
+import DataPanel from '@/components/DataPanel';
 import { Loader2 } from 'lucide-react';
 
 const ConflictMap = dynamic(() => import('@/components/ConflictMap'), {
@@ -313,12 +314,19 @@ export default function Home() {
         onGreatCircleToggle={() => setUseGreatCircle(prev => !prev)}
       />
 
+      {/* Data Panel — 右侧数据看板 */}
+      <DataPanel
+        events={displayEvents}
+        allEvents={allEvents}
+        dataMode={dataMode}
+      />
+
       {showModal && selectedEvent && (
         <EventModal event={selectedEvent} onClose={() => setShowModal(false)} />
       )}
 
-      {/* Attribution */}
-      <div className="absolute bottom-16 md:bottom-4 right-2 md:right-4 z-20">
+      {/* Attribution — 避开右侧 DataPanel */}
+      <div className="absolute bottom-16 md:bottom-4 right-2 md:right-[352px] z-20">
         <div className="bg-gray-900/70 rounded px-2 py-1">
           <p className="text-[9px] md:text-xs text-gray-500">
             {dataMode === 'conflict' ? 'UCDP GED 冲突事件数据集 1989–2025' : 'CDB90 · Wikipedia 历史战役 1600–1973'}
