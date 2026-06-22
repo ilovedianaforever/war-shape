@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.vercel/
+datasets/
+dashboard/
+public/data/
+dashboard.zip
+datasets.zip
+*.tsbuildinfo
