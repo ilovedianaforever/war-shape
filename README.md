@@ -574,3 +574,45 @@ npm run dev          # 启动开发服务器
 ---
 
 *文档生成于 2026-06-21，覆盖全部改造过程。*
+
+---
+
+## 第十部分：2026-06-24 修改日志
+
+### 10.1 GitHub Pages 部署修复
+
+| # | Bug | 文件 | 根因 |
+|---|-----|------|------|
+| 1 | 部署后只显示 README | — | `out/` 构建产物被提交到 git 且缺少 `data/` 目录（79 个 JSON 数据文件）；`out/` 现已加入 `.gitignore` |
+| 2 | 流向弧线 404 失效 | ConflictMap.tsx L36 | `COUNTRIES_URL = '/data/countries.json'` 未使用 `withBasePath`，缺少 `/war-shape/` 前缀 |
+| 3 | Recharts 图表 width(-1) 16 次 | DataPanel.tsx | `ResponsiveContainer` 在 CSS 布局完成前测量；改为 `mounted` 状态 + `debounce={1}` 延迟渲染 |
+| 4 | 平均伤亡率显示 10230.3 | DataPanel.tsx L281 | 标签写"平均伤亡率"，实际计算 `totalDeaths / totalEvents`（平均每场死亡数）；改用 `avgCasualtyRate × 100%` |
+| 5 | 播放器从中间位置仅走 1 单位 | page.tsx | slider 无 `step` 属性，用户可拖到非世纪值如 1750；`getNextYear()` 只认 1600/1700/1800/≥1900；`animationNextYear` 加入桶起点规范化 |
+
+### 10.2 中国历史战役数据补充（两轮，+55 场）
+
+| 战争 | 新增战役数 | 数据来源 |
+|---|---|---|
+| 抗日战争 (1937-1945) | 26 场 | Wikipedia / Baidu Baike |
+| 中国内战 (1947-1949) | 6 场 | Wikipedia / Baidu Baike |
+| 太平天国 (1851-1864) | 3 场 | Wikipedia / Britannica |
+| 中日甲午战争 (1894-1895) | 2 场 | Wikipedia |
+| 第一次鸦片战争 (1840-1842) | 2 场 | Wikipedia |
+| 八国联军侵华 (1900) | 3 场 | Wikipedia |
+| **小计** | **42 场** | |
+
+### 10.3 苏联东线战场数据补充（+13 场）
+
+莫斯科战役（131 万死）、列宁格勒围城（160 万死）、斯大林格勒（198 万死）、库尔斯克（106 万死）、基辅合围（83 万死）、哈尔科夫、斯摩棱斯克、塞瓦斯托波尔、巴格拉季昂、柏林、天王星行动、布良斯克、第聂伯河。
+
+### 10.4 数据指标变化
+
+| 指标 | 补充前 | 补充后 |
+|---|---|---|
+| 总战役数 | 1023 | **1078** |
+| 中国战役（死亡） | 11 场 / 244 万 | **53 场 / 844 万** |
+| 苏联战役（URSS+Russia） | 33 场 / 1266 万 | **46 场 / 2368 万** |
+
+### 10.5 参战方名映射补充
+
+`sideCountryMap.ts` 新增：`Chinese Communist Party` → China、`Kuomintang` → China、`Qing Dynasty` → China、`Taiping Heavenly Kingdom` → null、`Eight-Nation Alliance` → null。
