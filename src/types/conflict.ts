@@ -90,6 +90,8 @@ export interface ProcessedEvent {
   defenderAllies: string[];
   /** 数据来源标识 */
   source?: 'cdb90' | 'wikipedia' | 'ucdp';
+  /** UCDP 冲突暴力类型: State-based conflict | Non-state conflict | One-sided violence */
+  typeOfViolence?: string;
 }
 
 export interface RegionFilter {

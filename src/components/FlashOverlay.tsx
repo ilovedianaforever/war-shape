@@ -39,6 +39,26 @@ const MAX_BUCKET_MS = 20000;         // 最多 20 秒
 const GLOW_RADIUS_MULT = 3.0;        // 光晕半径倍数（泛光扩散范围）
 const CORE_EXPAND_FACTOR = 0.3;      // 闪点半径随生命周期膨胀系数
 
+/** 对重叠坐标的事件进行径向微偏移，避免堆叠不可见 */
+function jitterEvents(events: ProcessedEvent[]): ProcessedEvent[] {
+  const usage = new Map<string, number>();
+  return events.map(e => {
+    if (e.latitude == null || e.longitude == null) return e;
+    const key = `${e.latitude.toFixed(4)},${e.longitude.toFixed(4)}`;
+    const cnt = usage.get(key) || 0;
+    usage.set(key, cnt + 1);
+    if (cnt === 0) return e;
+    const angle = (cnt * 137.508) % 360;
+    const rad = (angle * Math.PI) / 180;
+    const dist = 0.04 + cnt * 0.015;
+    return {
+      ...e,
+      latitude: e.latitude + Math.sin(rad) * dist,
+      longitude: e.longitude + Math.cos(rad) * dist,
+    };
+  });
+}
+
 /* ── 伤疤层常量 ── */
 const SCAR_ALPHA_WAR = 0.045;        // 战争模式伤疤 alpha（低频高覆盖）
 const SCAR_ALPHA_CONFLICT = 0.012;   // 冲突模式伤疤 alpha（高频低覆盖防过曝）
@@ -47,7 +67,8 @@ const SCAR_RADIUS_SCALE = 1.3;       // 伤疤半径 ⨉ 闪点半径
 /* ── 颜色映射（返回 [R,G,B] 元组，与图例一致） ── */
 function getFlashRGB(event: ProcessedEvent, mode: 'war' | 'conflict'): [number, number, number] {
   if (mode === 'conflict') {
-    switch (event.terrain) {
+    const tov = event.typeOfViolence || event.terrain || '';
+    switch (tov) {
       case 'State-based conflict': return [249, 115, 22];  // orange
       case 'Non-state conflict':  return [168, 85, 247];   // purple
       case 'One-sided violence':  return [239, 68, 68];    // red
@@ -103,9 +124,9 @@ export default function FlashOverlay({
   const processedBatchRef = useRef(-1);  // 已完成的最新批次
   const batchCompletedRef = useRef(false);
 
-  // 检测 events 变化 → 更新批次号
+  // 检测 events 变化 → 更新批次号（同时微偏移重叠坐标）
   if (events !== eventsRef.current) {
-    eventsRef.current = events;
+    eventsRef.current = jitterEvents(events);
     batchIdRef.current++;
   }
 
@@ -263,14 +284,14 @@ export default function FlashOverlay({
       const dpr = window.devicePixelRatio || 1;
       const interval = birthIntervalRef.current;
 
-      // 0) 每帧全量重绘伤疤（仅历史战争模式）——冲突模式数据量大，跳过伤疤累积以保性能
-      if (dataModeRef.current === 'war') {
+      // 0) 每帧全量重绘伤疤（战争与冲突模式均启用，冲突模式用更低 alpha）
+      {
         const scarCanvas = scarCanvasRef.current;
         if (scarCanvas) {
           const sctx = scarCanvas.getContext('2d');
           if (sctx) {
             const marks = scarMarksRef.current;
-            const alpha = SCAR_ALPHA_WAR;
+            const alpha = dataModeRef.current === 'war' ? SCAR_ALPHA_WAR : SCAR_ALPHA_CONFLICT;
             sctx.clearRect(0, 0, scarCanvas.width, scarCanvas.height);
             sctx.globalCompositeOperation = 'lighter';
             for (const m of marks) {
@@ -306,10 +327,8 @@ export default function FlashOverlay({
             bornAt: now,
             lifetime: FLASH_LIFETIME,
           });
-          // 伤疤标记：仅历史战争模式累积（冲突模式数据量大，跳过以避免性能问题）
-          if (dataModeRef.current === 'war') {
-            scarMarksRef.current.push({ lng: evt.longitude, lat: evt.latitude, r, g, b, size: sz });
-          }
+          // 伤疤标记：两种模式均累积（冲突模式用更低 alpha 避免过曝）
+          scarMarksRef.current.push({ lng: evt.longitude, lat: evt.latitude, r, g, b, size: sz });
         }
         birthIndexRef.current++;
       }
@@ -397,14 +416,12 @@ export default function FlashOverlay({
 
   return (
     <div className="absolute inset-0 z-10 pointer-events-none">
-      {/* 伤疤累积层（仅历史战争模式） */}
-      {dataMode === 'war' && (
-        <canvas
-          ref={scarCanvasRef}
-          className="absolute inset-0"
-          style={{ width: '100%', height: '100%' }}
-        />
-      )}
+      {/* 伤疤累积层 */}
+      <canvas
+        ref={scarCanvasRef}
+        className="absolute inset-0"
+        style={{ width: '100%', height: '100%' }}
+      />
       {/* 闪点动画层（在上） */}
       <canvas
         ref={canvasRef}

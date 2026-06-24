@@ -75,6 +75,17 @@ const MAP: Record<string, string | null> = {
   "Hanóver": "Germany",
   "URSS": "Russia",
 
+  // ── CDB90：历史地区/属国 → 现代国家 ──
+  "Galicia Austríaca": "Poland",        // 奥地利属加利西亚 → 今波兰
+  "Polonia Rusa": "Poland",              // 俄属波兰
+  "Países Bajos Austríacos": "Belgium",  // 奥属尼德兰 → 今比利时
+  "Países Bajos Españoles": "Belgium",   // 西班牙属尼德兰 → 今比利时
+  "Turquía Europea": "Turkey",           // 欧洲土耳其（巴尔干）
+  "Alemania y Polonia Rusa": "Poland",   // 德国与俄属波兰 → 取波兰
+  "Véneto": "Italy",                     // 威尼托 → 今意大利
+  "Austria e Italia": "Austria",          // 奥地利与意大利 → 取奥地利
+  "Ankara Government": "Turkey",         // 安卡拉政府
+
   // ── CDB90：美国内战双方 ──
   "Confederación": "United States of America",
 

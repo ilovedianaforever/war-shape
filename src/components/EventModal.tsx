@@ -82,9 +82,9 @@ export default function EventModal({ event, onClose }: EventModalProps) {
               <p className="text-gray-400 text-sm mb-2">{event.warCn}{event.war && event.war !== event.warCn ? ` (${event.war})` : ''}</p>
             )}
             <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium border ${
-              isUcdp ? getViolenceStyle(event.terrain) : getWinnerStyle(event.winner)
+              isUcdp ? getViolenceStyle(event.typeOfViolence || event.terrain) : getWinnerStyle(event.winner)
             }`}>
-              {isUcdp ? getViolenceLabel(event.terrain) : getWinnerLabel(event.winner)}
+              {isUcdp ? getViolenceLabel(event.typeOfViolence || event.terrain) : getWinnerLabel(event.winner)}
             </div>
           </div>
           <button
@@ -112,7 +112,7 @@ export default function EventModal({ event, onClose }: EventModalProps) {
             <div className="bg-gray-800/50 rounded-lg p-3">
               {isUcdp ? (
                 <>
-                  <div className="text-purple-400 text-sm">{getViolenceLabel(event.terrain)}</div>
+                  <div className="text-purple-400 text-sm">{getViolenceLabel(event.typeOfViolence || event.terrain)}</div>
                   <div className="text-gray-500 text-xs mt-1">冲突类型</div>
                 </>
               ) : (

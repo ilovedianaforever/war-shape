@@ -532,6 +532,7 @@ export default function ConflictMap({
         allEvents={allEvents}
         yearEvents={events}
         selectedYear={selectedYear}
+        selectedRegions={selectedRegions}
         mapRef={map}
         isPlaying={isPlaying}
         showColumns={showColumns}

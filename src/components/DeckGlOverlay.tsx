@@ -29,6 +29,7 @@ interface DeckGlOverlayProps {
   allEvents: ProcessedEvent[];
   yearEvents: ProcessedEvent[];
   selectedYear: number;
+  selectedRegions: string[];
   mapRef: React.RefObject<maplibregl.Map | null>;
   isPlaying: boolean;
   showColumns: boolean;
@@ -61,6 +62,7 @@ export default function DeckGlOverlay({
   allEvents,
   yearEvents,
   selectedYear,
+  selectedRegions,
   mapRef,
   isPlaying,
   showColumns,
@@ -78,7 +80,20 @@ export default function DeckGlOverlay({
     (ColumnLayer | ArcLayer | H3HexagonLayer | ScatterplotLayer | GreatCircleLayer)[] | null
   >(null);
 
-  const columnSource = dataMode === 'conflict' ? (conflictColumnEvents ?? []) : allEvents;
+  const regionFilter = useMemo(() => {
+    if (selectedRegions.length === 0) return null;
+    return new Set(selectedRegions);
+  }, [selectedRegions]);
+
+  const matchesSelectedRegion = useCallback((event: ProcessedEvent) => {
+    if (!regionFilter) return true;
+    return regionFilter.has(event.region);
+  }, [regionFilter]);
+
+  const columnSource = useMemo(() => {
+    const source = dataMode === 'conflict' ? (conflictColumnEvents ?? []) : allEvents;
+    return source.filter(matchesSelectedRegion);
+  }, [dataMode, conflictColumnEvents, allEvents, matchesSelectedRegion]);
 
   // ── 柱体数据 ──
   const columnData = useMemo((): ColumnDatum[] => {
@@ -158,6 +173,7 @@ export default function DeckGlOverlay({
   }[] => {
     if (!useGpuScatter) return [];
     return yearEvents
+      .filter(matchesSelectedRegion)
       .filter(e => e.latitude != null && e.longitude != null)
       .map(e => {
         const c = e.totalCasualties || 1;
@@ -170,7 +186,7 @@ export default function DeckGlOverlay({
           opacity: Math.min(0.9, 0.3 + logC * 0.12),
         };
       });
-  }, [yearEvents, useGpuScatter]);
+  }, [yearEvents, useGpuScatter, matchesSelectedRegion]);
 
   // ── 组装图层 ──
   const layers = useMemo(() => {

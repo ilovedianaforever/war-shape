@@ -54,12 +54,13 @@ const WINNER_LABELS: Record<string, string> = {
   unknown: '未知',
 };
 
-/** 从 terrain 字段提取暴力类型标签 */
-function getViolenceLabel(terrain: string): string {
-  if (terrain.includes('State-based')) return '国家间冲突';
-  if (terrain.includes('Non-state')) return '非国家冲突';
-  if (terrain.includes('One-sided')) return '单方面暴力';
-  return '未知';
+/** 从 typeOfViolence 字段提取暴力类型标签（带 terrain 回退兼容旧数据） */
+function getViolenceLabel(typeOfViolence: string): string {
+  if (!typeOfViolence || typeOfViolence === 'Unknown') return '未知';
+  if (typeOfViolence.includes('State-based')) return '国家间冲突';
+  if (typeOfViolence.includes('Non-state')) return '非国家冲突';
+  if (typeOfViolence.includes('One-sided')) return '单方面暴力';
+  return typeOfViolence;
 }
 
 interface RegionStat {
@@ -155,9 +156,11 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
         }))
         .sort((a, b) => b.value - a.value);
     }
+    // 冲突模式：使用 typeOfViolence 字段展示暴力类型分布
     const map = new Map<string, number>();
     events.forEach(e => {
-      const label = getViolenceLabel(e.terrain);
+      const vt = e.typeOfViolence || e.terrain || 'Unknown';
+      const label = getViolenceLabel(vt);
       map.set(label, (map.get(label) || 0) + 1);
     });
     return Array.from(map.entries())
@@ -169,16 +172,20 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
       .sort((a, b) => b.value - a.value);
   }, [events, isWarMode]);
 
-  // ── 年份死亡趋势（仅战争模式有效）──
+  // ── 年份死亡趋势（战争模式按世纪/五年段，冲突模式逐年）──
   const yearlyTrend: YearlyTrend[] = useMemo(() => {
-    if (!isWarMode || allEvents.length === 0) return [];
+    if (allEvents.length === 0) return [];
     const map = new Map<number, { deaths: number; events: number }>();
     allEvents.forEach(e => {
       let bucket: number;
-      if (e.year < 1900) {
-        bucket = Math.floor(e.year / 100) * 100;
+      if (isWarMode) {
+        if (e.year < 1900) {
+          bucket = Math.floor(e.year / 100) * 100;
+        } else {
+          bucket = Math.floor(e.year / 5) * 5;
+        }
       } else {
-        bucket = Math.floor(e.year / 5) * 5;
+        bucket = e.year;
       }
       const prev = map.get(bucket) || { deaths: 0, events: 0 };
       prev.deaths += e.totalCasualties;
@@ -189,7 +196,9 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
       .sort(([a], [b]) => a - b)
       .map(([year, d]) => ({
         year,
-        yearStr: year < 1900 ? `${Math.floor(year / 100) + 1}世纪` : `${year}-${year + 4}`,
+        yearStr: isWarMode
+          ? (year < 1900 ? `${Math.floor(year / 100) + 1}世纪` : `${year}-${year + 4}`)
+          : `${year}`,
         deaths: d.deaths,
         events: d.events,
       }));
@@ -215,23 +224,23 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
 
   return (
     <>
-      {/* 折叠/展开按钮 */}
+      {/* 折叠/展开按钮 — 始终可见，提高 z-index 防止遮挡 */}
       <button
         onClick={() => setCollapsed(prev => !prev)}
-        className={`fixed top-1/2 -translate-y-1/2 z-20 p-1.5 bg-gray-800/90 border border-gray-600 rounded-lg hover:bg-gray-700 transition-all hidden md:block ${
+        className={`fixed top-1/2 -translate-y-1/2 z-30 p-2 bg-gray-800/95 border border-gray-500 rounded-lg hover:bg-gray-700 hover:border-gray-400 transition-all shadow-lg ${
           collapsed ? 'right-2' : 'right-[340px]'
         }`}
         title={collapsed ? '展开数据看板' : '收起数据看板'}
       >
         {collapsed ? (
-          <ChevronLeft className="w-4 h-4 text-gray-300" />
+          <ChevronLeft className="w-5 h-5 text-gray-200" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-300" />
+          <ChevronRight className="w-5 h-5 text-gray-200" />
         )}
       </button>
 
       {/* 面板主体 */}
-      <div className={`hidden md:block fixed right-2 top-2 bottom-2 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl z-10 transition-all duration-300 overflow-hidden ${
+      <div className={`fixed right-2 top-2 bottom-2 bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl z-10 transition-all duration-300 overflow-hidden ${
         collapsed ? 'w-0 opacity-0 pointer-events-none' : 'w-[336px]'
       }`}>
         <div className="h-full overflow-y-auto p-4 space-y-4" style={{ width: 336 }}>
@@ -262,25 +271,27 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
             </div>
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
               <div className="text-yellow-400 font-mono text-lg">
-                {summary.totalEvents > 0 ? (summary.avgCasualtyRate * 100).toFixed(1) + '%' : '—'}
+                {summary.totalEvents > 0 
+                  ? (summary.totalDeaths / summary.totalEvents).toFixed(1)
+                  : '—'}
               </div>
-              <div className="text-gray-400 text-[10px] mt-0.5">{isWarMode ? '平均伤亡率' : '事件密度'}</div>
+              <div className="text-gray-400 text-[10px] mt-0.5">{isWarMode ? '平均伤亡率' : '平均死亡'}</div>
             </div>
           </div>
 
           {/* 地区柱状图 */}
-          {regionStats.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-green-400" />
-                地区分布
-              </h3>
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-green-400" />
+              地区分布
+            </h3>
+            {regionStats.length > 0 ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[180px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsBarChart data={regionStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} />
-                    <YAxis type="category" dataKey="region" tick={{ fontSize: 10, fill: '#d1d5db' }} axisLine={false} width={28} />
+                    <YAxis type="category" dataKey="region" tick={{ fontSize: 10, fill: '#d1d5db' }} axisLine={false} width={55} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Bar dataKey="deaths" name="死亡" radius={[0, 4, 4, 0]} barSize={16}>
                       {regionStats.map((entry) => (
@@ -290,16 +301,20 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
                   </RechartsBarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-gray-800/20 rounded-lg h-[80px] flex items-center justify-center">
+                <p className="text-gray-500 text-xs">{events.length === 0 ? '选择时间查看' : '暂无地区数据'}</p>
+              </div>
+            )}
+          </div>
 
-          {/* 冲突类型饼图 */}
-          {typeStats.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-purple-400" />
-                {isWarMode ? '胜负结果分布' : '冲突类型分布'}
-              </h3>
+          {/* 类型分布（战争=胜负 / 冲突=暴力类型） */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-purple-400" />
+              {isWarMode ? '胜负结果分布' : '冲突类型分布'}
+            </h3>
+            {typeStats.length > 0 ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -330,22 +345,26 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-gray-800/20 rounded-lg h-[80px] flex items-center justify-center">
+                <p className="text-gray-500 text-xs">{events.length === 0 ? '选择时间查看' : (isWarMode ? '暂无分类数据' : '暂无类型数据')}</p>
+              </div>
+            )}
+          </div>
 
-          {/* 死亡趋势折线图（仅战争模式） */}
-          {yearlyTrend.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-orange-400" />
-                历史死亡趋势
-              </h3>
+          {/* 死亡趋势折线图 */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-orange-400" />
+              {isWarMode ? '历史死亡趋势' : '年度死亡趋势'}
+            </h3>
+            {yearlyTrend.length > 0 ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={yearlyTrend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis dataKey="yearStr" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} width={40} />
+                    <YAxis tick={{ fontSize: 6, fill: '#9ca3af' }} axisLine={false} width={40} />
                     <RechartsTooltip content={<CustomTooltip />} />
                     <Line
                       type="monotone"
@@ -353,22 +372,27 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
                       name="死亡数"
                       stroke="#ef4444"
                       strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4, fill: '#ef4444' }}
+                      isAnimationActive={false}
+                      dot={{ r: 4, fill: '#ef4444' }}
+                      activeDot={{ r: 6, fill: '#ef4444' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-gray-800/20 rounded-lg h-[80px] flex items-center justify-center">
+                <p className="text-gray-500 text-xs">暂无趋势数据</p>
+              </div>
+            )}
+          </div>
 
           {/* 国家排行 */}
-          {countryRank.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
-                <Users className="w-4 h-4 text-cyan-400" />
-                死亡最多的国家 (Top 10)
-              </h3>
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+              <Users className="w-4 h-4 text-cyan-400" />
+              死亡最多的国家 (Top 10)
+            </h3>
+            {countryRank.length > 0 ? (
               <div className="space-y-1">
                 {countryRank.map((c, i) => {
                   const maxDeaths = countryRank[0].deaths || 1;
@@ -393,8 +417,12 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-gray-800/20 rounded-lg h-[60px] flex items-center justify-center">
+                <p className="text-gray-500 text-xs">暂无排行数据</p>
+              </div>
+            )}
+          </div>
 
           {/* 无数据时的占位 */}
           {events.length === 0 && (

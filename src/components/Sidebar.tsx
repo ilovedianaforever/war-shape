@@ -167,7 +167,7 @@ export default function Sidebar({
             max={yearRange.max}
             value={selectedYear}
             onChange={(e) => onYearChange(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer slider sidebar-slider"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>{isWarMode ? '17世纪' : yearRange.min}</span>
