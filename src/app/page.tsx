@@ -165,7 +165,15 @@ export default function Home() {
   const animationNextYear = useCallback((current: number) => {
     const { min, max } = yearRange;
     if (dataMode === 'war') {
-      const next = conflictDataService.getNextYear(current, max, min);
+      // 规范化年份：对齐到 filterByYearCentury 所用的桶起点
+      // （slider 无 step 限制，用户可能拖到 1601/1750 等非对齐值）
+      let bucketStart: number;
+      if (current < 1900) {
+        bucketStart = Math.floor(current / 100) * 100;
+      } else {
+        bucketStart = Math.floor(current / 5) * 5;
+      }
+      const next = conflictDataService.getNextYear(bucketStart, max, min);
       return next ?? null; // null = 到终点了
     }
     return current >= max ? null : current + 1;
