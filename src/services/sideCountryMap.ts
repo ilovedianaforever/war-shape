@@ -156,6 +156,13 @@ const MAP: Record<string, string | null> = {
   "Taliban": null,
   "BRAS": null,
 
+  // ── 中国内战 / 近代中国补充 ──
+  "Chinese Communist Party": "China",
+  "Kuomintang": "China",
+  "Qing Dynasty": "China",
+  "Taiping Heavenly Kingdom": null,
+  "Eight-Nation Alliance": null,
+
   // ── CDB90：无法映射到单一现代国家 ──
   "Jacobitas": null,
   "Independentistas": null,
