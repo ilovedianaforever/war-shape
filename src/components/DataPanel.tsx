@@ -278,7 +278,9 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
               <div className="text-yellow-400 font-mono text-lg">
                 {summary.totalEvents > 0 
-                  ? `${(summary.avgCasualtyRate * 100).toFixed(1)}%`
+                  ? (isWarMode 
+                      ? `${(summary.avgCasualtyRate * 100).toFixed(1)}%`
+                      : (summary.totalDeaths / summary.totalEvents).toFixed(1))
                   : '—'}
               </div>
               <div className="text-gray-400 text-[10px] mt-0.5">{isWarMode ? '平均伤亡率' : '平均死亡'}</div>
