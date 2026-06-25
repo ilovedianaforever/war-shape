@@ -2,6 +2,8 @@
 
 > 基于 Next.js + MapLibre GL + deck.gl 构建的交互式战争与冲突时空可视化项目。支持 CDB90 历史战役（1600-1973）和 UCDP 当代冲突（1989-2025）双模式切换。
 
+> **GitHub Page**: [https://ilovedianaforever.github.io/war-shape](https://ilovedianaforever.github.io/war-shape)  
+> **仓库**: [https://github.com/ilovedianaforever/war-shape](https://github.com/ilovedianaforever/war-shape)
 ---
 
 ## 一、项目简介
