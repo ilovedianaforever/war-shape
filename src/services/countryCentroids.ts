@@ -4,6 +4,8 @@
  * 用于战争流向弧线的起点定位。
  */
 
+import { withBasePath } from '@/lib/basePath';
+
 export interface CountryCentroid {
   lng: number;
   lat: number;
@@ -71,7 +73,7 @@ export async function loadCountryCentroids(): Promise<Map<string, CountryCentroi
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = (async () => {
-    const resp = await fetch('/data/countries.json');
+    const resp = await fetch(withBasePath('/data/countries.json'));
     if (!resp.ok) throw new Error(`Failed to load countries.json: HTTP ${resp.status}`);
     const fc: GeoJSON.FeatureCollection = await resp.json();
     centroidsCache = computeCentroids(fc);

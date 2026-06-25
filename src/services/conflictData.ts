@@ -1,4 +1,5 @@
 import { ProcessedEvent, RegionFilter, ConflictStats } from '@/types/conflict';
+import { withBasePath } from '@/lib/basePath';
 
 interface UcdpManifest {
   years: number[];
@@ -49,7 +50,7 @@ class ConflictDataService {
 
     this.loading = true;
     this.loadPromise = (async () => {
-      const response = await fetch('/data/battle_events.json');
+      const response = await fetch(withBasePath('/data/battle_events.json'));
       if (!response.ok) throw new Error(`Failed to load data: HTTP ${response.status}`);
       const data: ProcessedEvent[] = await response.json();
       const normalized = data.map(e => this.normalizeEvent(e));
@@ -175,7 +176,7 @@ class ConflictDataService {
     this.ucdpManifestLoading = true;
     this.ucdpManifestPromise = (async () => {
       try {
-        const resp = await fetch('/data/ucdp/_manifest.json');
+        const resp = await fetch(withBasePath('/data/ucdp/_manifest.json'));
         if (!resp.ok) return null;
         const data: UcdpManifest = await resp.json();
         this.ucdpManifest = data;
@@ -196,7 +197,7 @@ class ConflictDataService {
       return this.ucdpCache.get(year)!;
     }
     try {
-      const resp = await fetch(`/data/ucdp/${year}.json`);
+      const resp = await fetch(withBasePath(`/data/ucdp/${year}.json`));
       if (!resp.ok) return [];
       const data: ProcessedEvent[] = await resp.json();
       const normalized = data.map(e => this.normalizeEvent(e));

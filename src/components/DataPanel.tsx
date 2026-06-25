@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ProcessedEvent } from '@/types/conflict';
 import {
   BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -108,7 +108,13 @@ const CustomTooltip = ({ active, payload, label }: {
 
 export default function DataPanel({ events, allEvents, dataMode }: DataPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isWarMode = dataMode === 'war';
+
+  // 延迟图表渲染，确保 CSS 布局已完成（避免 ResponsiveContainer 测量到 -1 尺寸）
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ── 摘要卡片 ──
   const summary = useMemo(() => {
@@ -272,7 +278,7 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
             <div className="bg-gray-800/50 rounded-lg p-3 text-center">
               <div className="text-yellow-400 font-mono text-lg">
                 {summary.totalEvents > 0 
-                  ? (summary.totalDeaths / summary.totalEvents).toFixed(1)
+                  ? `${(summary.avgCasualtyRate * 100).toFixed(1)}%`
                   : '—'}
               </div>
               <div className="text-gray-400 text-[10px] mt-0.5">{isWarMode ? '平均伤亡率' : '平均死亡'}</div>
@@ -285,9 +291,9 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
               <MapPin className="w-4 h-4 text-green-400" />
               地区分布
             </h3>
-            {regionStats.length > 0 ? (
+            {regionStats.length > 0 && mounted ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[180px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={1}>
                   <RechartsBarChart data={regionStats} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} />
@@ -314,9 +320,9 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
               <Globe className="w-4 h-4 text-purple-400" />
               {isWarMode ? '胜负结果分布' : '冲突类型分布'}
             </h3>
-            {typeStats.length > 0 ? (
+            {typeStats.length > 0 && mounted ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[160px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={1}>
                   <PieChart>
                     <Pie
                       data={typeStats}
@@ -358,9 +364,9 @@ export default function DataPanel({ events, allEvents, dataMode }: DataPanelProp
               <TrendingUp className="w-4 h-4 text-orange-400" />
               {isWarMode ? '历史死亡趋势' : '年度死亡趋势'}
             </h3>
-            {yearlyTrend.length > 0 ? (
+            {yearlyTrend.length > 0 && mounted ? (
               <div className="bg-gray-800/30 rounded-lg p-2 h-[160px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" debounce={1}>
                   <LineChart data={yearlyTrend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis dataKey="yearStr" tick={{ fontSize: 9, fill: '#9ca3af' }} axisLine={false} interval="preserveStartEnd" />

@@ -21,7 +21,8 @@ let countryNamesLoaded = false;
 async function ensureCountryNames(): Promise<string[]> {
   if (countryNamesLoaded) return STANDARD_COUNTRY_NAMES;
   try {
-    const resp = await fetch('/data/countries.json');
+    const { withBasePath } = await import('@/lib/basePath');
+    const resp = await fetch(withBasePath('/data/countries.json'));
     const data = await resp.json();
     const names: string[] = data.features.map((f: any) => f.properties.name as string);
     names.sort((a, b) => b.length - a.length); // 按长度降序，避免 "South Korea" 误匹配 "Korea"
@@ -140,7 +141,6 @@ const MAP: Record<string, string | null> = {
   "USA": "United States of America",
   "Czech Republic": "Czech Republic",
   "Irish Free State": "Ireland",
-  "Ankara Government": "Turkey",
 
   // ── Wikipedia/UCDP：非国家实体 → null（不参与国家高亮，但散点正常显示）──
   "AbkhaziaCMPC": null,
@@ -155,6 +155,13 @@ const MAP: Record<string, string | null> = {
   "PKK": null,
   "Taliban": null,
   "BRAS": null,
+
+  // ── 中国内战 / 近代中国补充 ──
+  "Chinese Communist Party": "China",
+  "Kuomintang": "China",
+  "Qing Dynasty": "China",
+  "Taiping Heavenly Kingdom": null,
+  "Eight-Nation Alliance": null,
 
   // ── CDB90：无法映射到单一现代国家 ──
   "Jacobitas": null,

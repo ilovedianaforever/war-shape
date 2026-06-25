@@ -7,6 +7,7 @@ import { ProcessedEvent } from '@/types/conflict';
 import { conflictDataService } from '@/services/conflictData';
 import { getBattleCountries } from '@/services/sideCountryMap';
 import { computeCentroidsSync, CountryCentroid } from '@/services/countryCentroids';
+import { withBasePath } from '@/lib/basePath';
 import FlashOverlay from './FlashOverlay';
 import DeckGlOverlay from './DeckGlOverlay';
 import ArcFlowOverlay from './ArcFlowOverlay';
@@ -33,7 +34,7 @@ interface ConflictMapProps {
 }
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-const COUNTRIES_URL = '/data/countries.json';
+const COUNTRIES_URL = withBasePath('/data/countries.json');
 
 export default function ConflictMap({
   events,
