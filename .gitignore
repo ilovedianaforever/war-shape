@@ -7,3 +7,7 @@ dashboard/
 dashboard.zip
 datasets.zip
 *.tsbuildinfo
+*.bak
+scripts/check_*.js
+scripts/verify_*.js
+scripts/enrich_*.py
